@@ -211,7 +211,7 @@
             statsDiv.style.display = 'none';
 
             try {
-                const response = await fetch('http://localhost:3000/api/scan');
+                const response = await fetch('/api/scan');
                 
                 if (!response.ok) {
                     throw new Error('Server error');
