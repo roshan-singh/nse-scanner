@@ -85,7 +85,7 @@ async function fetchFnoSymbols(axiosInstance) {
 }
 
 function getTargetExpiry() {
-    return "27-Feb-2026"; // Update monthly
+    return "24-Feb-2026"; // Update monthly
 }
 
 function checkFutstkCondition(record, targetExpiry) {
