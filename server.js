@@ -242,16 +242,17 @@ async function runLosersOHScan() {
 }
 
 // ─── Scheduler (IST Times) ────────────────────────────────────────────────────
-const SCAN_TIMES_IST = [
-    { h: 9,  m: 20 },
-    { h: 10, m: 0  },
-    { h: 11, m: 0  },
-    { h: 12, m: 0  },
-    { h: 13, m: 0  },
-    { h: 14, m: 0  },
-    { h: 15, m: 0  },
-    { h: 15, m: 25 },
+// FnO Scanner times: 09:17, 09:18, 09:19, 09:20, 09:21 IST
+const FNO_SCAN_TIMES_IST = [
+    { h: 9, m: 17 },
+    { h: 9, m: 18 },
+    { h: 9, m: 19 },
+    { h: 9, m: 20 },
+    { h: 9, m: 21 },
 ];
+
+// Losers OH Scanner time - only 09:31 IST
+const LOSERS_SCAN_TIME_IST = { h: 9, m: 31 };
 
 function getISTHoursMinutes() {
     const now = new Date();
@@ -265,15 +266,23 @@ function scheduleScans() {
         const { h, m, day } = getISTHoursMinutes();
         if (day < 1 || day > 5) return; // Mon-Fri only
 
-        const match = SCAN_TIMES_IST.find(t => t.h === h && t.m === m);
-        if (match) {
-            console.log(`⏰ Scheduled scans triggered at ${h}:${String(m).padStart(2,'0')} IST`);
+        // Check FnO scanner times
+        const fnoMatch = FNO_SCAN_TIMES_IST.find(t => t.h === h && t.m === m);
+        if (fnoMatch) {
+            console.log(`⏰ FnO Scanner triggered at ${h}:${String(m).padStart(2,'0')} IST`);
             runFnoScan().catch(err => console.error('FnO scan error:', err));
+        }
+
+        // Check Losers OH scanner time (09:31 only)
+        if (LOSERS_SCAN_TIME_IST.h === h && LOSERS_SCAN_TIME_IST.m === m) {
+            console.log(`⏰ Losers OH Scanner triggered at ${h}:${String(m).padStart(2,'0')} IST`);
             runLosersOHScan().catch(err => console.error('Losers scan error:', err));
         }
     }, 60 * 1000);
 
-    console.log('📅 Scheduler active for both scanners (Mon-Fri)');
+    console.log('📅 Scheduler active:');
+    console.log('   - FnO Scanner: 09:17, 09:18, 09:19, 09:20, 09:21 IST (Mon-Fri)');
+    console.log('   - Losers OH Scanner: 09:31 IST ONLY (Mon-Fri)');
     return checkInterval;
 }
 
