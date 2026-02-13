@@ -3,10 +3,58 @@ const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname)));
+
+// ─── Email Configuration ──────────────────────────────────────────────────────
+// Set these as environment variables in Render dashboard
+const EMAIL_CONFIG = {
+    enabled: process.env.EMAIL_ENABLED === 'true',
+    service: process.env.EMAIL_SERVICE || 'gmail', // gmail, outlook, etc.
+    user: process.env.EMAIL_USER, // your email
+    pass: process.env.EMAIL_PASS, // app password
+    to: process.env.EMAIL_TO || process.env.EMAIL_USER, // recipient email
+};
+
+let transporter = null;
+
+if (EMAIL_CONFIG.enabled && EMAIL_CONFIG.user && EMAIL_CONFIG.pass) {
+    transporter = nodemailer.createTransport({
+        service: EMAIL_CONFIG.service,
+        auth: {
+            user: EMAIL_CONFIG.user,
+            pass: EMAIL_CONFIG.pass,
+        },
+    });
+    console.log('📧 Email notifications enabled');
+} else {
+    console.log('📧 Email notifications disabled (set environment variables to enable)');
+}
+
+async function sendEmail(subject, text, csvAttachment) {
+    if (!transporter || !EMAIL_CONFIG.enabled) return;
+    
+    try {
+        const mailOptions = {
+            from: EMAIL_CONFIG.user,
+            to: EMAIL_CONFIG.to,
+            subject: subject,
+            text: text,
+            attachments: csvAttachment ? [{
+                filename: csvAttachment.filename,
+                content: csvAttachment.content,
+            }] : [],
+        };
+        
+        await transporter.sendMail(mailOptions);
+        console.log(`✅ Email sent: ${subject}`);
+    } catch (error) {
+        console.error('❌ Email send failed:', error.message);
+    }
+}
 
 // ─── Storage Setup ────────────────────────────────────────────────────────────
 const FNO_RESULTS_FILE = path.join(__dirname, 'fno_scan_results.json');
@@ -85,7 +133,7 @@ async function fetchFnoSymbols(axiosInstance) {
 }
 
 function getTargetExpiry() {
-    return "24-Feb-2026"; // Update monthly
+    return "27-Feb-2026"; // Update monthly
 }
 
 function checkFutstkCondition(record, targetExpiry) {
@@ -185,6 +233,31 @@ async function runFnoScan() {
 
     appendResult(FNO_RESULTS_FILE, scanResult);
     console.log(`✅ FnO Scan complete: ${stocksMeetingConditions} stocks qualified in ${scanTime}s`);
+    
+    // Send email with results
+    if (EMAIL_CONFIG.enabled) {
+        const csv = generateFnoCSV(scanResult);
+        const emailText = `FnO Options Scanner Results\n\n` +
+            `Scan Time: ${scanTimestamp}\n` +
+            `Expiry: ${scanResult.expiry}\n` +
+            `Total Symbols: ${scanResult.totalSymbols}\n` +
+            `Scanned Successfully: ${totalScannedSuccessfully}\n` +
+            `Qualified Stocks: ${stocksMeetingConditions}\n` +
+            `Scan Duration: ${scanTime}s\n\n` +
+            `Top Bullish: ${group1.slice(0, 3).map(s => s.symbol).join(', ')}\n` +
+            `Top Bearish: ${group2.slice(0, 3).map(s => s.symbol).join(', ')}\n\n` +
+            `Full results attached as CSV.`;
+        
+        await sendEmail(
+            `📊 FnO Scan Results - ${scanTimestamp}`,
+            emailText,
+            {
+                filename: `fno_scan_${scanTimestamp.replace(/[: ]/g, '_')}.csv`,
+                content: csv
+            }
+        );
+    }
+    
     return scanResult;
 }
 
@@ -238,6 +311,32 @@ async function runLosersOHScan() {
 
     appendResult(LOSERS_RESULTS_FILE, scanResult);
     console.log(`✅ Losers OH Scan complete: ${filteredStocks.length} stocks found in ${scanTime}s`);
+    
+    // Send email with results
+    if (EMAIL_CONFIG.enabled) {
+        const csv = generateLosersCSV(scanResult);
+        const topStocks = filteredStocks.slice(0, 5).map(s => 
+            `${s.symbol} (LTP: ${s.ltp.toFixed(2)}, Change: ${s.change.toFixed(2)}%)`
+        ).join('\n');
+        
+        const emailText = `Top Losers OH Scanner Results\n\n` +
+            `Scan Time: ${scanTimestamp}\n` +
+            `Total FOSec Stocks: ${scanResult.totalFOSecStocks}\n` +
+            `EQ Stocks with Open=High: ${filteredStocks.length}\n` +
+            `Scan Duration: ${scanTime}s\n\n` +
+            `Top 5 Stocks:\n${topStocks || 'None found'}\n\n` +
+            `Full results attached as CSV.`;
+        
+        await sendEmail(
+            `📉 Losers OH Scan Results - ${scanTimestamp}`,
+            emailText,
+            {
+                filename: `losers_oh_${scanTimestamp.replace(/[: ]/g, '_')}.csv`,
+                content: csv
+            }
+        );
+    }
+    
     return scanResult;
 }
 
@@ -252,7 +351,7 @@ const FNO_SCAN_TIMES_IST = [
 ];
 
 // Losers OH Scanner time - only 09:31 IST
-const LOSERS_SCAN_TIME_IST = { h: 9, m: 30 };
+const LOSERS_SCAN_TIME_IST = { h: 9, m: 31 };
 
 function getISTHoursMinutes() {
     const now = new Date();
