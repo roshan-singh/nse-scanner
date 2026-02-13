@@ -269,75 +269,137 @@ async function runLosersOHScan() {
     console.log(`\n🔍 Top Losers OH Scan started at ${new Date().toISOString()}`);
     const startTime = Date.now();
 
-    const axiosInstance = axios.create({ withCredentials: true });
-    
-    // Warm up cookie
-    try {
-        await axiosInstance.get('https://www.nseindia.com', { headers });
-    } catch (_) {}
-
-    const url = "https://www.nseindia.com/api/live-analysis-variations?index=loosers";
-    const response = await axiosInstance.get(url, { headers });
-    const data = response.data;
-
-    const fosecStocks = data['FOSec']['data'] || [];
-    
-    const filteredStocks = fosecStocks
-        .filter(stock => stock['series'] === 'EQ' && stock['open_price'] === stock['high_price'])
-        .map(stock => ({
-            symbol: stock['symbol'],
-            open: stock['open_price'],
-            high: stock['high_price'],
-            low: stock['low_price'],
-            ltp: stock['ltp'],
-            change: stock['perChange'],
-            volume: stock['trade_quantity']
-        }));
-
-    const scanTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istDate = new Date(now.getTime() + istOffset);
-    const scanTimestamp = istDate.toISOString().replace('T', ' ').substring(0, 19) + ' IST';
-
-    const scanResult = {
-        id: Date.now(),
-        scanTimestamp,
-        totalFOSecStocks: fosecStocks.length,
-        qualifiedStocks: filteredStocks.length,
-        scanTime,
-        stocks: filteredStocks
+    // Create axios instance with better headers and potential proxy
+    const axiosConfig = {
+        withCredentials: true,
+        headers: {
+            ...headers,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Referer': 'https://www.nseindia.com/market-data/live-market-indices',
+            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+        },
+        timeout: 15000,
     };
 
-    appendResult(LOSERS_RESULTS_FILE, scanResult);
-    console.log(`✅ Losers OH Scan complete: ${filteredStocks.length} stocks found in ${scanTime}s`);
-    
-    // Send email with results
-    if (EMAIL_CONFIG.enabled) {
-        const csv = generateLosersCSV(scanResult);
-        const topStocks = filteredStocks.slice(0, 5).map(s => 
-            `${s.symbol} (LTP: ${s.ltp.toFixed(2)}, Change: ${s.change.toFixed(2)}%)`
-        ).join('\n');
-        
-        const emailText = `Top Losers OH Scanner Results\n\n` +
-            `Scan Time: ${scanTimestamp}\n` +
-            `Total FOSec Stocks: ${scanResult.totalFOSecStocks}\n` +
-            `EQ Stocks with Open=High: ${filteredStocks.length}\n` +
-            `Scan Duration: ${scanTime}s\n\n` +
-            `Top 5 Stocks:\n${topStocks || 'None found'}\n\n` +
-            `Full results attached as CSV.`;
-        
-        await sendEmail(
-            `📉 Losers OH Scan Results - ${scanTimestamp}`,
-            emailText,
-            {
-                filename: `losers_oh_${scanTimestamp.replace(/[: ]/g, '_')}.csv`,
-                content: csv
-            }
-        );
+    // Add proxy if configured
+    if (process.env.PROXY_URL) {
+        const proxyUrl = new URL(process.env.PROXY_URL);
+        axiosConfig.proxy = {
+            host: proxyUrl.hostname,
+            port: proxyUrl.port || 80,
+            auth: proxyUrl.username ? {
+                username: proxyUrl.username,
+                password: proxyUrl.password
+            } : undefined
+        };
+        console.log('Using proxy for Losers scan');
     }
+
+    const axiosInstance = axios.create(axiosConfig);
     
-    return scanResult;
+    // Warm up cookie with main page first
+    try {
+        await axiosInstance.get('https://www.nseindia.com', { timeout: 5000 });
+        // Add small delay to mimic human behavior
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (err) {
+        console.log('Cookie warmup failed:', err.message);
+    }
+
+    try {
+        const url = "https://www.nseindia.com/api/live-analysis-variations?index=loosers";
+        const response = await axiosInstance.get(url);
+        const data = response.data;
+
+        const fosecStocks = data['FOSec']['data'] || [];
+        
+        const filteredStocks = fosecStocks
+            .filter(stock => stock['series'] === 'EQ' && stock['open_price'] === stock['high_price'])
+            .map(stock => ({
+                symbol: stock['symbol'],
+                open: stock['open_price'],
+                high: stock['high_price'],
+                low: stock['low_price'],
+                ltp: stock['ltp'],
+                change: stock['perChange'],
+                volume: stock['trade_quantity']
+            }));
+
+        const scanTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(now.getTime() + istOffset);
+        const scanTimestamp = istDate.toISOString().replace('T', ' ').substring(0, 19) + ' IST';
+
+        const scanResult = {
+            id: Date.now(),
+            scanTimestamp,
+            totalFOSecStocks: fosecStocks.length,
+            qualifiedStocks: filteredStocks.length,
+            scanTime,
+            stocks: filteredStocks
+        };
+
+        appendResult(LOSERS_RESULTS_FILE, scanResult);
+        console.log(`✅ Losers OH Scan complete: ${filteredStocks.length} stocks found in ${scanTime}s`);
+        
+        // Send email with results
+        if (EMAIL_CONFIG.enabled) {
+            const csv = generateLosersCSV(scanResult);
+            const topStocks = filteredStocks.slice(0, 5).map(s => 
+                `${s.symbol} (LTP: ${s.ltp.toFixed(2)}, Change: ${s.change.toFixed(2)}%)`
+            ).join('\n');
+            
+            const emailText = `Top Losers OH Scanner Results\n\n` +
+                `Scan Time: ${scanTimestamp}\n` +
+                `Total FOSec Stocks: ${scanResult.totalFOSecStocks}\n` +
+                `EQ Stocks with Open=High: ${filteredStocks.length}\n` +
+                `Scan Duration: ${scanTime}s\n\n` +
+                `Top 5 Stocks:\n${topStocks || 'None found'}\n\n` +
+                `Full results attached as CSV.`;
+            
+            await sendEmail(
+                `📉 Losers OH Scan Results - ${scanTimestamp}`,
+                emailText,
+                {
+                    filename: `losers_oh_${scanTimestamp.replace(/[: ]/g, '_')}.csv`,
+                    content: csv
+                }
+            );
+        }
+        
+        return scanResult;
+    } catch (error) {
+        console.error('❌ Losers OH Scan failed:', error.response?.status || error.message);
+        
+        // Return empty result on failure instead of crashing
+        const scanTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istDate = new Date(now.getTime() + istOffset);
+        const scanTimestamp = istDate.toISOString().replace('T', ' ').substring(0, 19) + ' IST';
+        
+        const errorResult = {
+            id: Date.now(),
+            scanTimestamp,
+            totalFOSecStocks: 0,
+            qualifiedStocks: 0,
+            scanTime,
+            stocks: [],
+            error: error.response?.status === 403 ? 'Access blocked by NSE' : error.message
+        };
+        
+        appendResult(LOSERS_RESULTS_FILE, errorResult);
+        return errorResult;
+    }
 }
 
 // ─── Scheduler (IST Times) ────────────────────────────────────────────────────
