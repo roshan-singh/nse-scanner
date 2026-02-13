@@ -252,7 +252,7 @@ const FNO_SCAN_TIMES_IST = [
 ];
 
 // Losers OH Scanner time - only 09:31 IST
-const LOSERS_SCAN_TIME_IST = { h: 9, m: 31 };
+const LOSERS_SCAN_TIME_IST = { h: 9, m: 30 };
 
 function getISTHoursMinutes() {
     const now = new Date();
