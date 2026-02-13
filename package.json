@@ -1,7 +1,7 @@
 {
-  "name": "nse-scanners-suite",
-  "version": "3.0.0",
-  "description": "NSE Scanners Suite - FnO Options Scanner + Top Losers OH Scanner with scheduled scans",
+  "name": "nse-scanner",
+  "version": "2.0.0",
+  "description": "NSE Options Scanner with scheduled scans and result storage",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,8 +9,7 @@
   "dependencies": {
     "axios": "^1.6.7",
     "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "nodemailer": "^6.9.9"
+    "express": "^4.18.2"
   },
   "engines": {
     "node": ">=18.0.0"
