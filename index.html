@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NSE Scanners Suite</title>
+    <title>NSE Options Scanner</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -14,69 +14,46 @@
             min-height: 100vh;
         }
 
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
 
-        /* ── Main Header ── */
-        .main-header {
+        /* ── Header ── */
+        .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px;
             text-align: center;
             border-radius: 15px 15px 0 0;
         }
-        .main-header h1 { font-size: 2em; margin-bottom: 5px; }
-        .main-header p { font-size: 0.9em; opacity: 0.9; }
+        .header h1 { font-size: 1.8em; margin-bottom: 4px; }
+        .header p { font-size: 0.85em; opacity: 0.85; }
 
-        /* ── Scanner Tabs ── */
-        .scanner-tabs {
+        /* ── Tabs ── */
+        .tabs {
             display: flex;
             background: #1e2a3a;
-            border-bottom: 2px solid #667eea;
         }
-        .scanner-tab {
+        .tab {
             flex: 1;
-            padding: 15px;
+            padding: 12px;
             text-align: center;
             color: #aaa;
             cursor: pointer;
-            font-size: 0.95em;
+            font-size: 0.9em;
             border-bottom: 3px solid transparent;
             transition: all 0.2s;
         }
-        .scanner-tab.active {
+        .tab.active {
             color: #667eea;
             border-bottom: 3px solid #667eea;
             background: #243044;
         }
-        .scanner-tab:hover { background: #243044; }
 
-        /* ── Scanner Container ── */
-        .scanner-container { display: none; background: #f5f7fa; }
-        .scanner-container.active { display: block; }
-
-        /* ── Section Tabs (Latest/History) ── */
-        .section-tabs {
-            display: flex;
-            background: #e0e6f0;
-        }
-        .section-tab {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            color: #666;
-            cursor: pointer;
-            font-size: 0.88em;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-        .section-tab.active {
-            color: #667eea;
-            border-bottom: 2px solid #667eea;
-            background: white;
-        }
-
-        .section-content { display: none; background: #fff; }
-        .section-content.active { display: block; }
+        /* ── Tab Content ── */
+        .tab-content { display: none; background: #fff; }
+        .tab-content.active { display: block; }
 
         /* ── Stats Bar ── */
         .stats {
@@ -131,9 +108,19 @@
         }
         button:active { transform: scale(0.97); }
         button:disabled { opacity: 0.55; cursor: not-allowed; }
-        .btn-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-        .btn-orange { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #333; }
-        .btn-sm { padding: 6px 14px; font-size: 0.78em; border-radius: 20px; }
+        .btn-green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: #fff;
+        }
+        .btn-orange {
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            color: #333;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 0.78em;
+            border-radius: 20px;
+        }
 
         /* ── Tables ── */
         .table-wrapper { padding: 10px 15px 15px; overflow-x: auto; }
@@ -148,7 +135,6 @@
         }
         .bullish-title { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
         .bearish-title { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); }
-        .losers-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
 
         table {
             width: 100%;
@@ -185,15 +171,18 @@
         .history-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
         /* ── Loading / Error ── */
-        .loading, .error, .empty-state {
+        .loading {
             text-align: center;
             padding: 40px 20px;
             font-size: 0.95em;
+            color: #667eea;
         }
-        .loading { color: #667eea; }
-        .error { color: #dc3545; }
-        .empty-state { color: #888; }
-        
+        .error {
+            text-align: center;
+            padding: 30px 20px;
+            color: #dc3545;
+            font-size: 0.9em;
+        }
         .spinner {
             border: 3px solid #e0e6f0;
             border-top: 3px solid #667eea;
@@ -205,6 +194,13 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+            font-size: 0.9em;
         }
 
         .badge {
@@ -232,202 +228,141 @@
 <body>
 <div class="container">
 
-    <!-- Main Header -->
-    <div class="main-header">
-        <h1>📊 NSE Scanners Suite</h1>
-        <p>Dual Scanner System • Auto-scheduled • Results Saved</p>
+    <!-- Header -->
+    <div class="header">
+        <h1>📊 NSE Options Scanner</h1>
+        <p>Auto-scans at market hours • Results saved on server</p>
     </div>
 
-    <!-- Scanner Tabs -->
-    <div class="scanner-tabs">
-        <div class="scanner-tab active" onclick="switchScanner('fno')">📈 FnO Options Scanner</div>
-        <div class="scanner-tab" onclick="switchScanner('losers')">📉 Top Losers OH</div>
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('latest')">📈 Latest Scan</div>
+        <div class="tab" onclick="switchTab('history')">🕐 History</div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- FnO OPTIONS SCANNER -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div id="scanner-fno" class="scanner-container active">
-        
-        <!-- Section Tabs -->
-        <div class="section-tabs">
-            <div class="section-tab active" onclick="switchSection('fno', 'latest')">📈 Latest Scan</div>
-            <div class="section-tab" onclick="switchSection('fno', 'history')">🕐 History</div>
+    <!-- ══ Latest Scan Tab ══ -->
+    <div id="tab-latest" class="tab-content active">
+
+        <div class="schedule-info">
+            ⏰ <strong>Auto-scan times (IST, Mon–Fri):</strong>
+            9:20 &nbsp;|&nbsp; 10:00 &nbsp;|&nbsp; 11:00 &nbsp;|&nbsp;
+            12:00 &nbsp;|&nbsp; 13:00 &nbsp;|&nbsp; 14:00 &nbsp;|&nbsp;
+            15:00 &nbsp;|&nbsp; 15:25
         </div>
 
-        <!-- Latest Section -->
-        <div id="fno-section-latest" class="section-content active">
-            <div class="schedule-info">
-                ⏰ <strong>Auto-scan times (IST, Mon–Fri):</strong>
-                09:17 | 09:18 | 09:19 | 09:20 | 09:21
+        <div class="btn-row">
+            <button onclick="manualScan()" id="scanBtn">🚀 Manual Scan</button>
+            <button class="btn-green" onclick="loadLatest()" id="refreshBtn">🔄 Load Latest</button>
+        </div>
+
+        <div id="stats" class="stats" style="display:none;">
+            <div class="stat-box">
+                <div class="label">Total Symbols</div>
+                <div class="value" id="totalSymbols">-</div>
             </div>
-            <div class="btn-row">
-                <button onclick="manualScan('fno')" id="fno-scan-btn">🚀 Manual Scan</button>
-                <button class="btn-green" onclick="loadLatest('fno')" id="fno-refresh-btn">🔄 Load Latest</button>
+            <div class="stat-box">
+                <div class="label">Scanned</div>
+                <div class="value" id="scannedSuccessfully">-</div>
             </div>
-            <div id="fno-stats" class="stats" style="display:none;"></div>
-            <div id="fno-latest-content">
-                <div class="empty-state">Click <strong>Load Latest</strong> or <strong>Manual Scan</strong></div>
+            <div class="stat-box">
+                <div class="label">Qualified</div>
+                <div class="value" id="meetingConditions">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Time</div>
+                <div class="value" id="scanTime">-</div>
             </div>
         </div>
 
-        <!-- History Section -->
-        <div id="fno-section-history" class="section-content">
-            <div class="btn-row">
-                <button onclick="loadHistory('fno')" class="btn-green">🔄 Refresh History</button>
-                <button onclick="downloadAllCSV('fno')" class="btn-orange">⬇️ Download All (CSV)</button>
-            </div>
-            <div id="fno-history-content">
-                <div class="empty-state">Click Refresh History</div>
+        <div id="latest-content">
+            <div class="empty-state">
+                Click <strong>Load Latest</strong> to see the most recent scan,<br>
+                or <strong>Manual Scan</strong> to run a fresh scan now.
             </div>
         </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- TOP LOSERS OH SCANNER -->
-    <!-- ══════════════════════════════════════════════════════════════ -->
-    <div id="scanner-losers" class="scanner-container">
-        
-        <!-- Section Tabs -->
-        <div class="section-tabs">
-            <div class="section-tab active" onclick="switchSection('losers', 'latest')">📈 Latest Scan</div>
-            <div class="section-tab" onclick="switchSection('losers', 'history')">🕐 History</div>
+    <!-- ══ History Tab ══ -->
+    <div id="tab-history" class="tab-content">
+        <div class="btn-row">
+            <button onclick="loadHistory()" class="btn-green">🔄 Refresh History</button>
+            <button onclick="downloadAllCSV()" class="btn-orange">⬇️ Download All (CSV)</button>
         </div>
-
-        <!-- Latest Section -->
-        <div id="losers-section-latest" class="section-content active">
-            <div class="schedule-info">
-                ⏰ <strong>Auto-scan time (IST, Mon–Fri):</strong> 09:31 ONLY
-            </div>
-            <div class="btn-row">
-                <button onclick="manualScan('losers')" id="losers-scan-btn">🚀 Manual Scan</button>
-                <button class="btn-green" onclick="loadLatest('losers')" id="losers-refresh-btn">🔄 Load Latest</button>
-            </div>
-            <div id="losers-stats" class="stats" style="display:none;"></div>
-            <div id="losers-latest-content">
-                <div class="empty-state">Click <strong>Load Latest</strong> or <strong>Manual Scan</strong></div>
-            </div>
-        </div>
-
-        <!-- History Section -->
-        <div id="losers-section-history" class="section-content">
-            <div class="btn-row">
-                <button onclick="loadHistory('losers')" class="btn-green">🔄 Refresh History</button>
-                <button onclick="downloadAllCSV('losers')" class="btn-orange">⬇️ Download All (CSV)</button>
-            </div>
-            <div id="losers-history-content">
-                <div class="empty-state">Click Refresh History</div>
-            </div>
+        <div id="history-content">
+            <div class="empty-state">Click Refresh History to load saved scans.</div>
         </div>
     </div>
 
     <!-- Footer -->
     <div class="footer">
-        Auto-scheduled scans run <span>Mon–Fri</span> • 
-        FnO: 09:17-09:21 (5 scans) • 
-        Losers OH: 09:31 only • 
-        Last 30 scans saved per scanner
+        Auto-scheduled scans run <span>Mon–Fri</span> at market hours •
+        Last 30 scans saved on server
     </div>
 
 </div>
 
 <script>
-    let isScanning = { fno: false, losers: false };
+    let isScanning = false;
 
-    // ── Scanner Switching ─────────────────────────────────────────
-    function switchScanner(scanner) {
-        document.querySelectorAll('.scanner-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.scanner-container').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.scanner-tab[onclick="switchScanner('${scanner}')"]`).classList.add('active');
-        document.getElementById(`scanner-${scanner}`).classList.add('active');
+    // ── Tab Switching ─────────────────────────────────────────────
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+        document.getElementById(`tab-${tab}`).classList.add('active');
+
+        if (tab === 'history') loadHistory();
     }
 
-    // ── Section Switching ─────────────────────────────────────────
-    function switchSection(scanner, section) {
-        const container = document.getElementById(`scanner-${scanner}`);
-        container.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
-        container.querySelectorAll('.section-content').forEach(t => t.classList.remove('active'));
-        container.querySelector(`.section-tab[onclick="switchSection('${scanner}', '${section}')"]`).classList.add('active');
-        container.querySelector(`#${scanner}-section-${section}`).classList.add('active');
+    // ── Render Tables ─────────────────────────────────────────────
+    function renderTables(data, container) {
+        const ts = data.scanTimestamp || 'Unknown';
+        const exp = data.expiry || '';
 
-        if (section === 'history') loadHistory(scanner);
-    }
+        const dlBtn = data.id
+            ? `<button class="btn-orange btn-sm" onclick="downloadCSV('${data.id}')">⬇️ CSV</button>`
+            : '';
 
-    // ══════════════════════════════════════════════════════════════
-    // FNO OPTIONS SCANNER FUNCTIONS
-    // ══════════════════════════════════════════════════════════════
-
-    function renderFnoTables(data, container) {
-        const dlBtn = data.id ? `<button class="btn-orange btn-sm" onclick="downloadCSV('fno', '${data.id}')">⬇️ CSV</button>` : '';
         container.innerHTML = `
             <div style="padding:8px 15px; font-size:0.8em; color:#666; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-                <span>🕐 ${data.scanTimestamp} | 📅 Expiry: <strong>${data.expiry}</strong></span>
+                <span>🕐 ${ts} &nbsp;|&nbsp; 📅 Expiry: <strong>${exp}</strong></span>
                 ${dlBtn}
             </div>
             <div class="table-wrapper">
                 <div class="table-title bullish-title">🐂 TOP 10 BULLISH</div>
                 <table>
-                    <thead><tr><th>#</th><th>Symbol</th><th>CE_OL</th><th>PE_OH</th></tr></thead>
+                    <thead>
+                        <tr><th>#</th><th>Symbol</th><th>CE_OL</th><th>PE_OH</th></tr>
+                    </thead>
                     <tbody>
                         ${data.bullish.length > 0
-                            ? data.bullish.map((s, i) => `<tr><td>${i + 1}</td><td><strong>${s.symbol}</strong></td><td>${s.ceOL}</td><td>${s.peOH}</td></tr>`).join('')
-                            : '<tr><td colspan="4" style="text-align:center;color:#aaa;">No data</td></tr>'
-                        }
-                    </tbody>
-                </table>
-                <div class="table-title bearish-title">🐻 TOP 10 BEARISH</div>
-                <table>
-                    <thead><tr><th>#</th><th>Symbol</th><th>PE_OL</th><th>CE_OH</th></tr></thead>
-                    <tbody>
-                        ${data.bearish.length > 0
-                            ? data.bearish.map((s, i) => `<tr><td>${i + 1}</td><td><strong>${s.symbol}</strong></td><td>${s.peOL}</td><td>${s.ceOH}</td></tr>`).join('')
-                            : '<tr><td colspan="4" style="text-align:center;color:#aaa;">No data</td></tr>'
-                        }
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-
-    function updateFnoStats(data) {
-        document.getElementById('fno-stats').innerHTML = `
-            <div class="stat-box"><div class="label">Total Symbols</div><div class="value">${data.totalSymbols}</div></div>
-            <div class="stat-box"><div class="label">Scanned</div><div class="value">${data.totalScannedSuccessfully}</div></div>
-            <div class="stat-box"><div class="label">Qualified</div><div class="value">${data.stocksMeetingConditions}</div></div>
-            <div class="stat-box"><div class="label">Time</div><div class="value">${data.scanTime}s</div></div>
-        `;
-        document.getElementById('fno-stats').style.display = 'grid';
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // LOSERS OH SCANNER FUNCTIONS
-    // ══════════════════════════════════════════════════════════════
-
-    function renderLosersTable(data, container) {
-        const dlBtn = data.id ? `<button class="btn-orange btn-sm" onclick="downloadCSV('losers', '${data.id}')">⬇️ CSV</button>` : '';
-        container.innerHTML = `
-            <div style="padding:8px 15px; font-size:0.8em; color:#666; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-                <span>🕐 ${data.scanTimestamp}</span>
-                ${dlBtn}
-            </div>
-            <div class="table-wrapper">
-                <div class="table-title losers-title">📉 EQ STOCKS WITH OPEN = HIGH</div>
-                <table>
-                    <thead><tr><th>#</th><th>Symbol</th><th>Open</th><th>High</th><th>Low</th><th>LTP</th><th>Change %</th><th>Volume</th></tr></thead>
-                    <tbody>
-                        ${data.stocks.length > 0
-                            ? data.stocks.map((s, i) => `
+                            ? data.bullish.map((s, i) => `
                                 <tr>
                                     <td>${i + 1}</td>
                                     <td><strong>${s.symbol}</strong></td>
-                                    <td>${s.open.toFixed(2)}</td>
-                                    <td>${s.high.toFixed(2)}</td>
-                                    <td>${s.low.toFixed(2)}</td>
-                                    <td>${s.ltp.toFixed(2)}</td>
-                                    <td>${s.change.toFixed(2)}%</td>
-                                    <td>${s.volume.toLocaleString()}</td>
+                                    <td>${s.ceOL}</td>
+                                    <td>${s.peOH}</td>
                                 </tr>`).join('')
-                            : '<tr><td colspan="8" style="text-align:center;color:#aaa;">No qualifying stocks</td></tr>'
+                            : '<tr><td colspan="4" style="text-align:center;color:#aaa;">No qualifying stocks</td></tr>'
+                        }
+                    </tbody>
+                </table>
+
+                <div class="table-title bearish-title">🐻 TOP 10 BEARISH</div>
+                <table>
+                    <thead>
+                        <tr><th>#</th><th>Symbol</th><th>PE_OL</th><th>CE_OH</th></tr>
+                    </thead>
+                    <tbody>
+                        ${data.bearish.length > 0
+                            ? data.bearish.map((s, i) => `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td><strong>${s.symbol}</strong></td>
+                                    <td>${s.peOL}</td>
+                                    <td>${s.ceOH}</td>
+                                </tr>`).join('')
+                            : '<tr><td colspan="4" style="text-align:center;color:#aaa;">No qualifying stocks</td></tr>'
                         }
                     </tbody>
                 </table>
@@ -435,83 +370,73 @@
         `;
     }
 
-    function updateLosersStats(data) {
-        document.getElementById('losers-stats').innerHTML = `
-            <div class="stat-box"><div class="label">Total FOSec</div><div class="value">${data.totalFOSecStocks}</div></div>
-            <div class="stat-box"><div class="label">Qualified</div><div class="value">${data.qualifiedStocks}</div></div>
-            <div class="stat-box"><div class="label">Scan Time</div><div class="value">${data.scanTime}s</div></div>
-        `;
-        document.getElementById('losers-stats').style.display = 'grid';
+    function updateStats(data) {
+        document.getElementById('totalSymbols').textContent = data.totalSymbols;
+        document.getElementById('scannedSuccessfully').textContent = data.totalScannedSuccessfully;
+        document.getElementById('meetingConditions').textContent = data.stocksMeetingConditions;
+        document.getElementById('scanTime').textContent = data.scanTime + 's';
+        document.getElementById('stats').style.display = 'grid';
     }
 
-    // ══════════════════════════════════════════════════════════════
-    // COMMON FUNCTIONS
-    // ══════════════════════════════════════════════════════════════
-
-    async function loadLatest(scanner) {
-        const content = document.getElementById(`${scanner}-latest-content`);
-        const btn = document.getElementById(`${scanner}-refresh-btn`);
-        btn.disabled = true;
+    // ── Load Latest ───────────────────────────────────────────────
+    async function loadLatest() {
+        const content = document.getElementById('latest-content');
+        const refreshBtn = document.getElementById('refreshBtn');
+        refreshBtn.disabled = true;
         content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading latest scan...</div>';
 
         try {
-            const res = await fetch(`/api/${scanner}/results/latest`);
+            const res = await fetch('/api/results/latest');
             const data = await res.json();
             if (!data) {
-                content.innerHTML = '<div class="empty-state">No scans yet.</div>';
-                document.getElementById(`${scanner}-stats`).style.display = 'none';
+                content.innerHTML = '<div class="empty-state">No scans yet. Run a manual scan or wait for auto-scan.</div>';
+                document.getElementById('stats').style.display = 'none';
             } else {
-                if (scanner === 'fno') {
-                    updateFnoStats(data);
-                    renderFnoTables(data, content);
-                } else {
-                    updateLosersStats(data);
-                    renderLosersTable(data, content);
-                }
+                updateStats(data);
+                renderTables(data, content);
             }
         } catch (err) {
             content.innerHTML = `<div class="error">❌ ${err.message}</div>`;
         } finally {
-            btn.disabled = false;
+            refreshBtn.disabled = false;
         }
     }
 
-    async function manualScan(scanner) {
-        if (isScanning[scanner]) return;
-        isScanning[scanner] = true;
+    // ── Manual Scan ───────────────────────────────────────────────
+    async function manualScan() {
+        if (isScanning) return;
+        isScanning = true;
 
-        const content = document.getElementById(`${scanner}-latest-content`);
-        const btn = document.getElementById(`${scanner}-scan-btn`);
-        btn.disabled = true;
-        content.innerHTML = '<div class="loading"><div class="spinner"></div>Scanning... This takes 1–2 minutes.</div>';
-        document.getElementById(`${scanner}-stats`).style.display = 'none';
+        const content = document.getElementById('latest-content');
+        const scanBtn = document.getElementById('scanBtn');
+        scanBtn.disabled = true;
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>Scanning all FnO stocks... This takes 1–2 minutes.</div>';
+        document.getElementById('stats').style.display = 'none';
 
         try {
-            const res = await fetch(`/api/${scanner}/scan`);
+            const res = await fetch('/api/scan');
             if (!res.ok) throw new Error(`Server error ${res.status}`);
             const data = await res.json();
-            
-            if (scanner === 'fno') {
-                updateFnoStats(data);
-                renderFnoTables(data, content);
-            } else {
-                updateLosersStats(data);
-                renderLosersTable(data, content);
-            }
+            updateStats(data);
+            renderTables(data, content);
         } catch (err) {
-            content.innerHTML = `<div class="error">❌ ${err.message}<br><br>Make sure the server is running.</div>`;
+            content.innerHTML = `
+                <div class="error">❌ ${err.message}<br><br>Make sure the server is running.</div>
+                <div class="btn-row"><button onclick="manualScan()">🔄 Retry</button></div>
+            `;
         } finally {
-            isScanning[scanner] = false;
-            btn.disabled = false;
+            isScanning = false;
+            scanBtn.disabled = false;
         }
     }
 
-    async function loadHistory(scanner) {
-        const content = document.getElementById(`${scanner}-history-content`);
+    // ── Load History ──────────────────────────────────────────────
+    async function loadHistory() {
+        const content = document.getElementById('history-content');
         content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading history...</div>';
 
         try {
-            const res = await fetch(`/api/${scanner}/results`);
+            const res = await fetch('/api/results');
             const results = await res.json();
 
             if (!results || results.length === 0) {
@@ -519,25 +444,22 @@
                 return;
             }
 
-            const html = results.map((r, idx) => {
-                const meta = scanner === 'fno'
-                    ? `📅 ${r.expiry} | ✅ ${r.stocksMeetingConditions} qualified | ⏱ ${r.scanTime}s`
-                    : `✅ ${r.qualifiedStocks} qualified | ⏱ ${r.scanTime}s`;
-
-                return `
-                    <div class="history-card">
-                        <div class="history-meta">
-                            <strong>${r.scanTimestamp}</strong>
-                            ${idx === 0 ? '<span class="badge">Latest</span>' : ''}
-                            <br>${meta}
-                        </div>
-                        <div class="history-actions">
-                            <button class="btn-sm" onclick="viewHistoryScan('${scanner}', ${r.id})">👁 View</button>
-                            <button class="btn-sm btn-orange" onclick="downloadCSV('${scanner}', '${r.id}')">⬇️ CSV</button>
-                        </div>
+            const html = results.map((r, idx) => `
+                <div class="history-card">
+                    <div class="history-meta">
+                        <strong>${r.scanTimestamp}</strong>
+                        ${idx === 0 ? '<span class="badge">Latest</span>' : ''}
+                        <br>
+                        📅 Expiry: ${r.expiry} &nbsp;|&nbsp;
+                        ✅ ${r.stocksMeetingConditions} qualified &nbsp;|&nbsp;
+                        ⏱ ${r.scanTime}s
                     </div>
-                `;
-            }).join('');
+                    <div class="history-actions">
+                        <button class="btn-sm" onclick="viewHistoryScan(${r.id})">👁 View</button>
+                        <button class="btn-sm btn-orange" onclick="downloadCSV('${r.id}')">⬇️ CSV</button>
+                    </div>
+                </div>
+            `).join('');
 
             content.innerHTML = `<div class="history-list">${html}</div>`;
         } catch (err) {
@@ -545,41 +467,36 @@
         }
     }
 
-    async function viewHistoryScan(scanner, id) {
-        switchSection(scanner, 'latest');
-        const content = document.getElementById(`${scanner}-latest-content`);
-        content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading scan...</div>';
+    // ── View a History Scan ───────────────────────────────────────
+    async function viewHistoryScan(id) {
+        switchTab('latest');
+        const content = document.getElementById('latest-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading scan data...</div>';
 
         try {
-            const res = await fetch(`/api/${scanner}/results`);
+            const res = await fetch('/api/results');
             const results = await res.json();
             const data = results.find(r => r.id === id);
             if (!data) throw new Error('Scan not found');
-            
-            if (scanner === 'fno') {
-                updateFnoStats(data);
-                renderFnoTables(data, content);
-            } else {
-                updateLosersStats(data);
-                renderLosersTable(data, content);
-            }
+            updateStats(data);
+            renderTables(data, content);
         } catch (err) {
             content.innerHTML = `<div class="error">❌ ${err.message}</div>`;
         }
     }
 
-    function downloadCSV(scanner, id) {
-        window.location.href = `/api/${scanner}/download/csv/${id}`;
+    // ── Download CSV (single scan) ────────────────────────────────
+    function downloadCSV(id) {
+        window.location.href = `/api/download/csv/${id}`;
     }
 
-    function downloadAllCSV(scanner) {
-        window.location.href = `/api/${scanner}/download/csv/all`;
+    // ── Download All CSV ──────────────────────────────────────────
+    function downloadAllCSV() {
+        window.location.href = '/api/download/csv/all';
     }
 
-    // Auto-load latest on page load
-    window.addEventListener('load', () => {
-        loadLatest('fno');
-    });
+    // ── Auto-load latest on page open ────────────────────────────
+    window.addEventListener('load', loadLatest);
 </script>
 </body>
 </html>
