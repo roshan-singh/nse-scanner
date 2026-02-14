@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname)));
 
 // ─── Email Configuration (Resend) ─────────────────────────────────────────
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@example.com';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 const EMAIL_RECIPIENT = process.env.EMAIL_RECIPIENT || '';
 
 let resend = null;
