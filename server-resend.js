@@ -3,50 +3,33 @@ const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const app = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname)));
 
-// ─── Email Configuration ──────────────────────────────────────────────────────
-const GMAIL_USER = process.env.GMAIL_USER || '';
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
+// ─── Email Configuration (Resend) ─────────────────────────────────────────
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@example.com';
 const EMAIL_RECIPIENT = process.env.EMAIL_RECIPIENT || '';
 
-let transporter = null;
+let resend = null;
 
 function initializeMailer() {
-    if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
-        console.warn('⚠️  Email credentials not configured. Email notifications disabled.');
+    if (!RESEND_API_KEY) {
+        console.warn('⚠️  Email API key not configured. Email notifications disabled.');
         return null;
     }
     
-    // Remove spaces from app password (some systems add spaces)
-    const cleanPassword = GMAIL_APP_PASSWORD.replace(/\s/g, '');
-    
-    transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,  // Use TLS instead of implicit SSL
-        secure: false, // true = 465, false = 587
-        auth: {
-            user: GMAIL_USER,
-            pass: cleanPassword
-        },
-        tls: {
-            rejectUnauthorized: false  // Required for some environments
-        },
-        connectionTimeout: 10000,
-        socketTimeout: 10000
-    });
-    
-    console.log('✅ Email service initialized (Gmail SMTP on port 587 with TLS)');
-    return transporter;
+    resend = new Resend(RESEND_API_KEY);
+    console.log('✅ Email service initialized (Resend)');
+    return resend;
 }
 
 async function sendScanResultEmail(scanResult) {
-    if (!transporter || !EMAIL_RECIPIENT) {
-        console.log('⚠️  Email not sent: Missing configuration');
+    if (!resend || !EMAIL_RECIPIENT) {
+        console.log('⚠️  Email not sent: Missing configuration (RESEND_API_KEY or EMAIL_RECIPIENT)');
         return;
     }
 
@@ -54,8 +37,10 @@ async function sendScanResultEmail(scanResult) {
         const csvContent = generateCSV(scanResult);
         const filename = `nse_scan_${scanResult.scanTimestamp.replace(/[: ]/g, '_')}.csv`;
         
-        const mailOptions = {
-            from: GMAIL_USER,
+        console.log(`📧 Attempting to send email to ${EMAIL_RECIPIENT} via Resend...`);
+        
+        const response = await resend.emails.send({
+            from: EMAIL_FROM,
             to: EMAIL_RECIPIENT,
             subject: `NSE Scanner Results - ${scanResult.scanTimestamp}`,
             html: `
@@ -71,24 +56,21 @@ async function sendScanResultEmail(scanResult) {
             attachments: [
                 {
                     filename: filename,
-                    content: csvContent,
+                    content: Buffer.from(csvContent).toString('base64'),
                     contentType: 'text/csv'
                 }
             ]
-        };
+        });
 
-        console.log(`📧 Attempting to send email to ${EMAIL_RECIPIENT}...`);
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent successfully! Message ID: ${info.messageId}`);
+        if (response.error) {
+            console.error(`❌ Resend API error: ${response.error.message}`);
+            return false;
+        }
+        
+        console.log(`✅ Email sent successfully! Email ID: ${response.data.id}`);
         return true;
     } catch (error) {
         console.error(`❌ Error sending email: ${error.message}`);
-        console.error(`   Code: ${error.code}`);
-        if (error.code === 'ECONNREFUSED') {
-            console.error('   → Connection refused. Check GMAIL_USER and GMAIL_APP_PASSWORD');
-        } else if (error.code === 'ETIMEDOUT') {
-            console.error('   → Connection timeout. Render may be blocking SMTP port 587.');
-        }
         return false;
     }
 }
@@ -219,7 +201,7 @@ async function getCountsForSymbol(axiosInstance, symbol, semaphore) {
     }
 }
 
-// ─── Core Scan Function ───────────────────────────────────────────────────────
+// ─── Core Scan Function ───────────────────────────────────────────────────
 async function runScan() {
     console.log(`\n🔍 Scan started at ${new Date().toISOString()}`);
     const startTime = Date.now();
