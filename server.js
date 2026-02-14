@@ -3,10 +3,78 @@ const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname)));
+
+// ─── Email Configuration ──────────────────────────────────────────────────────
+const GMAIL_USER = process.env.GMAIL_USER || '';
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
+const EMAIL_RECIPIENT = process.env.EMAIL_RECIPIENT || '';
+
+let transporter = null;
+
+function initializeMailer() {
+    if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
+        console.warn('⚠️  Email credentials not configured. Email notifications disabled.');
+        return null;
+    }
+    
+    transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: GMAIL_USER,
+            pass: GMAIL_APP_PASSWORD
+        }
+    });
+    
+    console.log('✅ Email service initialized');
+    return transporter;
+}
+
+async function sendScanResultEmail(scanResult) {
+    if (!transporter || !EMAIL_RECIPIENT) {
+        console.log('⚠️  Email not sent: Missing configuration');
+        return;
+    }
+
+    try {
+        const csvContent = generateCSV(scanResult);
+        const filename = `nse_scan_${scanResult.scanTimestamp.replace(/[: ]/g, '_')}.csv`;
+        
+        const mailOptions = {
+            from: GMAIL_USER,
+            to: EMAIL_RECIPIENT,
+            subject: `NSE Scanner Results - ${scanResult.scanTimestamp}`,
+            html: `
+                <h2>NSE Options Scanner Results</h2>
+                <p><strong>Scan Time:</strong> ${scanResult.scanTimestamp}</p>
+                <p><strong>Expiry:</strong> ${scanResult.expiry}</p>
+                <p><strong>Total Symbols Scanned:</strong> ${scanResult.totalScannedSuccessfully}</p>
+                <p><strong>Stocks Meeting Conditions:</strong> ${scanResult.stocksMeetingConditions}</p>
+                <p><strong>Scan Duration:</strong> ${scanResult.scanTime}s</p>
+                <hr>
+                <p>CSV file with detailed results is attached.</p>
+            `,
+            attachments: [
+                {
+                    filename: filename,
+                    content: csvContent,
+                    contentType: 'text/csv'
+                }
+            ]
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`📧 Email sent successfully: ${info.messageId}`);
+        return true;
+    } catch (error) {
+        console.error('❌ Error sending email:', error.message);
+        return false;
+    }
+}
 
 // ─── Storage Setup ────────────────────────────────────────────────────────────
 const RESULTS_FILE = path.join(__dirname, 'scan_results.json');
@@ -189,6 +257,10 @@ async function runScan() {
 
     appendResult(scanResult);
     console.log(`✅ Scan complete: ${stocksMeetingConditions} stocks qualified in ${scanTime}s`);
+    
+    // Send email notification with CSV
+    await sendScanResultEmail(scanResult);
+    
     return scanResult;
 }
 
@@ -341,5 +413,6 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
+    initializeMailer();
     scheduleNextScan();
 });
