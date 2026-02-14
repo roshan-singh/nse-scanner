@@ -266,14 +266,12 @@ async function runScan() {
 // ─── Scheduler (IST Times) ────────────────────────────────────────────────────
 // Scheduled scan times in IST: 9:20, 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 15:25
 const SCAN_TIMES_IST = [
+    { h: 9,  m: 17 },
+    { h: 9,  m: 18 },
+    { h: 9,  m: 19 },
     { h: 9,  m: 20 },
-    { h: 10, m: 0  },
-    { h: 11, m: 0  },
-    { h: 12, m: 0  },
-    { h: 13, m: 0  },
-    { h: 14, m: 0  },
-    { h: 15, m: 0  },
-    { h: 15, m: 25 },
+    { h: 9,  m: 25 },
+    { h: 9,  m: 30 },
 ];
 
 function getISTHoursMinutes() {
