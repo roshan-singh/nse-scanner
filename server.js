@@ -22,15 +22,25 @@ function initializeMailer() {
         return null;
     }
     
+    // Remove spaces from app password (some systems add spaces)
+    const cleanPassword = GMAIL_APP_PASSWORD.replace(/\s/g, '');
+    
     transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,  // Use TLS instead of implicit SSL
+        secure: false, // true = 465, false = 587
         auth: {
             user: GMAIL_USER,
-            pass: GMAIL_APP_PASSWORD
-        }
+            pass: cleanPassword
+        },
+        tls: {
+            rejectUnauthorized: false  // Required for some environments
+        },
+        connectionTimeout: 10000,
+        socketTimeout: 10000
     });
     
-    console.log('✅ Email service initialized');
+    console.log('✅ Email service initialized (Gmail SMTP on port 587 with TLS)');
     return transporter;
 }
 
@@ -67,11 +77,18 @@ async function sendScanResultEmail(scanResult) {
             ]
         };
 
+        console.log(`📧 Attempting to send email to ${EMAIL_RECIPIENT}...`);
         const info = await transporter.sendMail(mailOptions);
-        console.log(`📧 Email sent successfully: ${info.messageId}`);
+        console.log(`✅ Email sent successfully! Message ID: ${info.messageId}`);
         return true;
     } catch (error) {
-        console.error('❌ Error sending email:', error.message);
+        console.error(`❌ Error sending email: ${error.message}`);
+        console.error(`   Code: ${error.code}`);
+        if (error.code === 'ECONNREFUSED') {
+            console.error('   → Connection refused. Check GMAIL_USER and GMAIL_APP_PASSWORD');
+        } else if (error.code === 'ETIMEDOUT') {
+            console.error('   → Connection timeout. Render may be blocking SMTP port 587.');
+        }
         return false;
     }
 }
