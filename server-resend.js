@@ -407,9 +407,15 @@ app.get('/', (req, res) => {
 });
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
+
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`✅ Render server running on port ${PORT}`);
     initializeMailer();
     scheduleNextScan();
+});
+
+// Health route (important for Render)
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
 });
