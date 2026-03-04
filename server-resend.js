@@ -151,7 +151,7 @@ async function fetchFnoSymbols(axiosInstance) {
 function getTargetExpiry() {
     // Returns the nearest monthly expiry date string in "DD-Mon-YYYY" format
     // Update this manually or auto-calculate as needed
-    return "24-Feb-2026";
+    return "30-Mar-2026";
 }
 
 function checkFutstkCondition(record, targetExpiry) {
